@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="福祉用具計算">
+    <meta name="theme-color" content="#2563eb">
+    <title>福祉用具点数計算アプリ</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" data-href="data:application/json;base64,eyJuYW1lIjoi56aP56WJ55So5YW36KGA5pWw6KiI566XIiwic2hvcnRfbmFtZSI6IuemjeWJqeS4g+OAhue2muOAhyIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsInRoZW1lX2NvbG9yIjoiIzI1NjNlYiIsImJhY2tncm91bmRfY29sb3IiOiIjZmZmZmZmIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU1USTRJaUJvWldsbmFIUTlJakV5T0NJZ2RtbGxkMEp2ZUQwaU1DQXdJREV5T0NBeE1qZ2lJRlpsY25OcGIyNDlJakV1TVNJZ2VHMXNibk05SW1oMGRIQTZMeTkzZDNjdWR6TXViM0puTHpJd01EQXZjM1puSWo0S0lDQWdQSEpsWTNRZ2QybGtkR2c5SWpFeU9DSWdhR1ZwWjJoMFBTSXhNamdpSUhKNFBTSTJJaUJtYVd4c1BTSWpNalUyTTJWaUlpOCtDaUFnSUNBOGNtVmpkQ0IzYVdSMGFEMGlNVEU0SWlCb1pXbG5hSFE5SWpFeE9DSWdlRDBpTlNJZ2VUMGlOU0lnY25nOUlqWWlJR1pwYkd3OUlpTm1abVptWm1ZaUx6NEtJQ0E4TDNOMlp6NEsiLCJzaXplcyI6IjEyOHgxMjgiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 4px 24px rgba(37, 99, 235, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            flex: 1;
+        }
+        
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr 400px;
+            }
+        }
+        
+        .search-results {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        
+        .item-points {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .add-btn {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .add-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .add-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .calculator {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 20px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .calculator-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .total-points {
+            background: linear-gradient(45deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 16px;
+        }
+        
+        .selected-items {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+        
+        .selected-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .selected-item-info {
+            flex: 1;
+        }
+        
+        .selected-item-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .selected-item-points {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        .remove-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .remove-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .clear-btn {
+            width: 100%;
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-btn:hover {
+            background: #4b5563;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #6b7280;
+            padding: 40px 20px;
+        }
+        
+        .mobile-toggle {
+            display: none;
+            background: linear-gradient(45deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        @media (max-width: 767px) {
+            .mobile-toggle {
+                display: block;
+            }
+            
+            .calculator {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 100;
+                max-height: 100vh;
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .calculator.show {
+                display: flex;
+            }
+            
+            .close-btn {
+                background: #6b7280;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                margin-bottom: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">福祉用具点数計算アプリ</h1>
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="福祉用具を検索...">
+            </div>
+        </div>
+        
+        <button class="mobile-toggle" id="toggleCalculator">
+            計算結果を表示 (<span id="mobileCount">0</span>件)
+        </button>
+        
+        <div class="main-content">
+            <div class="search-results" id="searchResults">
+                <div class="empty-state">
+                    <h3>福祉用具を検索してください</h3>
+                    <p>品目名を入力すると検索結果が表示されます</p>
+                </div>
+            </div>
+            
+            <div class="calculator" id="calculator">
+                <button class="close-btn" id="closeCalculator" style="display: none;">× 閉じる</button>
+                <div class="calculator-title">
+                    選択した品目
+                    <span class="total-points" id="totalPoints">0点</span>
+                </div>
+                <div class="selected-items" id="selectedItems">
+                    <div class="empty-state">
+                        <p>選択された品目がここに表示されます</p>
+                    </div>
+                </div>
+                <button class="clear-btn" id="clearAll">全て削除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 福祉用具のサンプルデータ
+        const welfareEquipment = [
+            { id: 1, name: '車いす（自走用標準型）', points: 320 },
+            { id: 2, name: '車いす（介助用標準型）', points: 320 },
+            { id: 3, name: '電動車いす（簡易型）', points: 1230 },
+            { id: 4, name: '車いす付属品（クッション）', points: 50 },
+            { id: 5, name: '特殊寝台（モーター機能1つ）', points: 320 },
+            { id: 6, name: '特殊寝台（モーター機能2つ）', points: 650 },
+            { id: 7, name: '特殊寝台（モーター機能3つ）', points: 970 },
+            { id: 8, name: '特殊寝台付属品（マットレス）', points: 50 },
+            { id: 9, name: '特殊寝台付属品（サイドレール）', points: 50 },
+            { id: 10, name: '床ずれ防止用具（エアーマット）', points: 320 },
+            { id: 11, name: '体位変換器', points: 50 },
+            { id: 12, name: '手すり（工事を伴わないもの）', points: 50 },
+            { id: 13, name: 'スロープ（工事を伴わないもの）', points: 50 },
+            { id: 14, name: '歩行器（歩行車）', points: 320 },
+            { id: 15, name: '歩行補助つえ（T字状・棒状）', points: 50 },
+            { id: 16, name: '歩行補助つえ（多点杖）', points: 100 },
+            { id: 17, name: '認知症老人徘徊感知機器', points: 100 },
+            { id: 18, name: '移動用リフト（つり具部分を除く）', points: 970 },
+            { id: 19, name: '移動用リフト（つり具）', points: 50 },
+            { id: 20, name: '自動排泄処理装置（要介護4・5のみ）', points: 850 }
+        ];
+
+        let selectedItems = [];
+        let filteredItems = welfareEquipment;
+
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const selectedItemsContainer = document.getElementById('selectedItems');
+        const totalPointsElement = document.getElementById('totalPoints');
+        const clearAllBtn = document.getElementById('clearAll');
+        const toggleCalculatorBtn = document.getElementById('toggleCalculator');
+        const calculator = document.getElementById('calculator');
+        const closeCalculatorBtn = document.getElementById('closeCalculator');
+        const mobileCountSpan = document.getElementById('mobileCount');
+
+        // 検索機能
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (query === '') {
+                showEmptyState();
+                return;
+            }
+            
+            filteredItems = welfareEquipment.filter(item => 
+                item.name.toLowerCase().includes(query)
+            );
+            
+            displaySearchResults(filteredItems);
+        });
+
+        function showEmptyState() {
+            searchResults.innerHTML = `
+                <div class="empty-state">
+                    <h3>福祉用具を検索してください</h3>
+                    <p>品目名を入力すると検索結果が表示されます</p>
+                </div>
+            `;
+        }
+
+        function displaySearchResults(items) {
+            if (items.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="empty-state">
+                        <h3>該当する品目が見つかりません</h3>
+                        <p>別のキーワードで検索してみてください</p>
+                    </div>
+                `;
+                return;
+            }
+
+            searchResults.innerHTML = items.map(item => {
+                const isSelected = selectedItems.some(selected => selected.id === item.id);
+                return `
+                    <div class="result-item">
+                        <div class="item-info">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-points">${item.points}点/月</div>
+                        </div>
+                        <button class="add-btn" onclick="addItem(${item.id})" ${isSelected ? 'disabled' : ''}>
+                            ${isSelected ? '追加済み' : '追加'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addItem(itemId) {
+            const item = welfareEquipment.find(item => item.id === itemId);
+            if (item && !selectedItems.some(selected => selected.id === itemId)) {
+                selectedItems.push(item);
+                updateCalculator();
+                updateMobileCount();
+                // 検索結果を更新して「追加済み」状態を反映
+                displaySearchResults(filteredItems);
+            }
+        }
+
+        function removeItem(itemId) {
+            selectedItems = selectedItems.filter(item => item.id !== itemId);
+            updateCalculator();
+            updateMobileCount();
+            // 検索結果を更新してボタンの状態を反映
+            displaySearchResults(filteredItems);
+        }
+
+        function updateCalculator() {
+            const totalPoints = selectedItems.reduce((sum, item) => sum + item.points, 0);
+            totalPointsElement.textContent = `${totalPoints}点`;
+
+            if (selectedItems.length === 0) {
+                selectedItemsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>選択された品目がここに表示されます</p>
+                    </div>
+                `;
+            } else {
+                selectedItemsContainer.innerHTML = selectedItems.map(item => `
+                    <div class="selected-item">
+                        <div class="selected-item-info">
+                            <div class="selected-item-name">${item.name}</div>
+                            <div class="selected-item-points">${item.points}点/月</div>
+                        </div>
+                        <button class="remove-btn" onclick="removeItem(${item.id})">×</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updateMobileCount() {
+            mobileCountSpan.textContent = selectedItems.length;
+        }
+
+        clearAllBtn.addEventListener('click', () => {
+            selectedItems = [];
+            updateCalculator();
+            updateMobileCount();
+            displaySearchResults(filteredItems);
+        });
+
+        // モバイル用の計算機表示切り替え
+        toggleCalculatorBtn.addEventListener('click', () => {
+            calculator.classList.add('show');
+            closeCalculatorBtn.style.display = 'block';
+        });
+
+        closeCalculatorBtn.addEventListener('click', () => {
+            calculator.classList.remove('show');
+            closeCalculatorBtn.style.display = 'none';
+        });
+
+        // PWA用のサービスワーカー登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('data:text/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdpbnN0YWxsJywgZXZlbnQgPT4gewogIGV2ZW50LndhaXRVbnRpbChzZWxmLnNraXBXYWl0aW5nKCkpOwp9KTsKCnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCBldmVudCA9PiB7CiAgZXZlbnQucmVzcG9uZFdpdGgoZmV0Y2goZXZlbnQucmVxdWVzdCkpOwp9KTs=')
+                .then((registration) => {
+                    console.log('SW registered: ', registration);
+                })
+                .catch((registrationError) => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
