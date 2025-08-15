@@ -68,6 +68,59 @@
             transition: all 0.3s ease;
         }
         
+        .file-upload-container {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .file-upload-container:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-upload-btn {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .file-upload-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+        
+        .upload-status {
+            margin-top: 12px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .upload-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .upload-error {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        
         .search-input:focus {
             outline: none;
             box-shadow: 0 4px 24px rgba(37, 99, 235, 0.2);
@@ -307,6 +360,18 @@
     <div class="container">
         <div class="header">
             <h1 class="title">福祉用具点数計算アプリ</h1>
+            
+            <div class="file-upload-container">
+                <input type="file" class="file-input" id="fileInput" accept=".xlsx,.xls">
+                <button class="file-upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Excelファイルをアップロード
+                </button>
+                <div class="file-upload-text">
+                    福祉用具リスト（A列：商品名、B列：点数）
+                </div>
+                <div id="uploadStatus"></div>
+            </div>
+            
             <div class="search-container">
                 <input type="text" class="search-input" id="searchInput" placeholder="福祉用具を検索...">
             </div>
@@ -340,9 +405,10 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // 福祉用具のサンプルデータ
-        const welfareEquipment = [
+        // 福祉用具のデータベース（初期データ）
+        let welfareEquipment = [
             { id: 1, name: '車いす（自走用標準型）', points: 320 },
             { id: 2, name: '車いす（介助用標準型）', points: 320 },
             { id: 3, name: '電動車いす（簡易型）', points: 1230 },
@@ -368,6 +434,8 @@
         let selectedItems = [];
         let filteredItems = welfareEquipment;
 
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
         const searchInput = document.getElementById('searchInput');
         const searchResults = document.getElementById('searchResults');
         const selectedItemsContainer = document.getElementById('selectedItems');
@@ -377,6 +445,64 @@
         const calculator = document.getElementById('calculator');
         const closeCalculatorBtn = document.getElementById('closeCalculator');
         const mobileCountSpan = document.getElementById('mobileCount');
+
+        // Excelファイル読み込み機能
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                uploadStatus.innerHTML = '<div class="upload-status">読み込み中...</div>';
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const data = XLSX.utils.sheet_to_json(worksheet, { header: ['name', 'points'], range: 1 });
+
+                // データをクリーンアップして変換
+                const newEquipment = data
+                    .filter(row => row.name && row.points) // 空の行を除外
+                    .map((row, index) => ({
+                        id: Date.now() + index, // ユニークなIDを生成
+                        name: String(row.name).trim(),
+                        points: parseInt(row.points) || 0
+                    }))
+                    .filter(item => item.name !== '' && item.points > 0); // 有効なデータのみ
+
+                if (newEquipment.length === 0) {
+                    throw new Error('有効なデータが見つかりません');
+                }
+
+                // 福祉用具リストを更新
+                welfareEquipment = newEquipment;
+                filteredItems = welfareEquipment;
+
+                // 選択済みアイテムをクリア（IDが変わるため）
+                selectedItems = [];
+                updateCalculator();
+                updateMobileCount();
+
+                // 検索結果をリセット
+                showEmptyState();
+                searchInput.value = '';
+
+                uploadStatus.innerHTML = `<div class="upload-status upload-success">${newEquipment.length}件の福祉用具を読み込みました</div>`;
+                
+                // 3秒後にステータスを消去
+                setTimeout(() => {
+                    uploadStatus.innerHTML = '';
+                }, 3000);
+
+            } catch (error) {
+                console.error('ファイル読み込みエラー:', error);
+                uploadStatus.innerHTML = `<div class="upload-status upload-error">エラー: ${error.message}</div>`;
+                
+                setTimeout(() => {
+                    uploadStatus.innerHTML = '';
+                }, 5000);
+            }
+        });
 
         // 検索機能
         searchInput.addEventListener('input', (e) => {
